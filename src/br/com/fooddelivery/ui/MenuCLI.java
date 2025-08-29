@@ -3,7 +3,6 @@ package br.com.fooddelivery.ui;
 import br.com.fooddelivery.domain.*;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
@@ -11,10 +10,7 @@ import java.util.Scanner;
 public class MenuCLI {
 
     private final Scanner in = new Scanner(System.in).useLocale(Locale.US);
-
-    private final List<Cliente> clientes = new ArrayList<>();
-    private final List<ItemCardapio> itens = new ArrayList<>();
-    private final List<Pedido> pedidos = new ArrayList<>();
+    private final CentralDeDados db = CentralDeDados.getInstance();
 
     public void iniciar() {
         int opcao;
@@ -38,6 +34,21 @@ public class MenuCLI {
         } while (opcao != 0);
     }
 
+    private void mostrarMenu() {
+        System.out.println("======== FOOD DELIVERY ========");
+        System.out.println("1) Cadastrar Cliente");
+        System.out.println("2) Listar Clientes");
+        System.out.println("3) Cadastrar Item no Cardápio");
+        System.out.println("4) Listar Itens do Cardápio");
+        System.out.println("5) Criar Pedido");
+        System.out.println("6) Avançar Status de Pedido");
+        System.out.println("7) Listar Pedidos por Status");
+        System.out.println("8) Relatório de Vendas (Simplificado)");
+        System.out.println("9) Relatório de Vendas (Detalhado)");
+        System.out.println("0) Sair");
+        System.out.println("=====================================");
+    }
+
     // Clientes
     private void cadastrarCliente() {
         System.out.println("--- Cadastrar Cliente ---");
@@ -45,7 +56,7 @@ public class MenuCLI {
         String fone = lerLinha("Telefone: ");
         try {
             Cliente c = new Cliente(nome, fone);
-            clientes.add(c);
+            db.adicionarCliente(c);
             System.out.println("Cliente cadastrado: " + c);
         } catch (IllegalArgumentException e) {
             System.out.println("Erro: " + e.getMessage());
@@ -54,11 +65,12 @@ public class MenuCLI {
 
     private void listarClientes() {
         System.out.println("--- Clientes ---");
-        if (clientes.isEmpty()) {
+        List<Cliente> lista = db.listarClientes();
+        if (lista.isEmpty()) {
             System.out.println("Nenhum cliente cadastrado.");
             return;
         }
-        for (Cliente c : clientes) System.out.println(c);
+        for (Cliente c : lista) System.out.println(c);
     }
 
     // Itens
@@ -69,7 +81,7 @@ public class MenuCLI {
         try {
             BigDecimal preco = new BigDecimal(precoStr);
             ItemCardapio item = new ItemCardapio(nome, preco);
-            itens.add(item);
+            db.adicionarItem(item);
             System.out.println("Item cadastrado: " + item);
         } catch (Exception e) {
             System.out.println("Erro: " + e.getMessage());
@@ -78,11 +90,12 @@ public class MenuCLI {
 
     private void listarItens() {
         System.out.println("--- Itens do Cardápio ---");
-        if (itens.isEmpty()) {
+        List<ItemCardapio> lista = db.listarItens();
+        if (lista.isEmpty()) {
             System.out.println("Nenhum item cadastrado.");
             return;
         }
-        for (ItemCardapio i : itens) System.out.println(i);
+        for (ItemCardapio i : lista) System.out.println(i);
     }
 
     // Pedidos
@@ -90,11 +103,7 @@ public class MenuCLI {
         System.out.println("--- Criar Pedido ---");
         listarClientes();
         int idCliente = lerInt("Digite o ID do cliente: ");
-        Cliente cliente = clientes.stream()
-                .filter(c -> c.getId() == idCliente)
-                .findFirst()
-                .orElse(null);
-
+        Cliente cliente = db.buscarClientePorId(idCliente);
         if (cliente == null) {
             System.out.println("Cliente não encontrado.");
             return;
@@ -107,11 +116,7 @@ public class MenuCLI {
             int codigo = lerInt("Código do item (0 para finalizar): ");
             if (codigo == 0) break;
 
-            ItemCardapio item = itens.stream()
-                    .filter(i -> i.getCodigo() == codigo)
-                    .findFirst()
-                    .orElse(null);
-
+            ItemCardapio item = db.buscarItemPorCodigo(codigo);
             if (item == null) {
                 System.out.println("Item não encontrado.");
                 continue;
@@ -132,7 +137,7 @@ public class MenuCLI {
             return;
         }
 
-        pedidos.add(pedido);
+        db.adicionarPedido(pedido);
         System.out.println("Pedido criado: " + pedido);
     }
 
@@ -140,11 +145,7 @@ public class MenuCLI {
         System.out.println("--- Avançar Status de Pedido ---");
         listarPedidosResumo();
         int numero = lerInt("Número do pedido: ");
-        Pedido p = pedidos.stream()
-                .filter(x -> x.getNumero() == numero)
-                .findFirst()
-                .orElse(null);
-
+        Pedido p = db.buscarPedidoPorNumero(numero);
         if (p == null) {
             System.out.println("Pedido não encontrado.");
             return;
@@ -159,13 +160,11 @@ public class MenuCLI {
 
     private void listarPedidosPorStatus() {
         System.out.println("--- Pedidos por Status ---");
-        for (PedidoStatus st : PedidoStatus.values()) System.out.println(" - " + st);
+        mostrarStatusPossiveis();
         String s = lerLinha("Digite o status (maiúsculas/minúsculas não importam): ");
         try {
             PedidoStatus st = PedidoStatus.valueOf(s.trim().toUpperCase(Locale.ROOT));
-            List<Pedido> lista = pedidos.stream()
-                    .filter(p -> p.getStatus() == st)
-                    .toList();
+            List<Pedido> lista = db.listarPedidosPorStatus(st);
             if (lista.isEmpty()) {
                 System.out.println("Nenhum pedido com status " + st);
                 return;
@@ -178,19 +177,18 @@ public class MenuCLI {
 
     private void relatorioSimplificado() {
         System.out.println("--- Relatório de Vendas (Simplificado) ---");
-        System.out.println("Total de pedidos: " + pedidos.size());
-        BigDecimal total = BigDecimal.ZERO;
-        for (Pedido p : pedidos) total = total.add(p.calcularTotal());
-        System.out.println("Valor total arrecadado: R$ " + total.toPlainString());
+        System.out.println("Total de pedidos: " + db.quantidadeTotalDePedidos());
+        System.out.println("Valor total arrecadado: R$ " + db.valorTotalArrecadado().toPlainString());
     }
 
     private void relatorioDetalhado() {
         System.out.println("--- Relatório de Vendas (Detalhado) ---");
-        if (pedidos.isEmpty()) {
+        List<Pedido> lista = db.listarPedidos();
+        if (lista.isEmpty()) {
             System.out.println("Nenhum pedido registrado.");
             return;
         }
-        for (Pedido p : pedidos) {
+        for (Pedido p : lista) {
             System.out.println(p);
             for (PedidoItem item : p.getItens()) {
                 System.out.println("  - " + item);
@@ -198,6 +196,7 @@ public class MenuCLI {
         }
     }
 
+    // util
     private int lerInt(String msg) {
         while (true) {
             try {
@@ -216,25 +215,17 @@ public class MenuCLI {
     }
 
     private void listarPedidosResumo() {
-        if (pedidos.isEmpty()) {
+        List<Pedido> lista = db.listarPedidos();
+        if (lista.isEmpty()) {
             System.out.println("Nenhum pedido registrado.");
             return;
         }
-        for (Pedido p : pedidos) System.out.println(p);
+        for (Pedido p : lista) System.out.println(p);
     }
 
-    private void mostrarMenu() {
-        System.out.println("======== FOOD DELIVERY ========");
-        System.out.println("1) Cadastrar Cliente");
-        System.out.println("2) Listar Clientes");
-        System.out.println("3) Cadastrar Item no Cardápio");
-        System.out.println("4) Listar Itens do Cardápio");
-        System.out.println("5) Criar Pedido");
-        System.out.println("6) Avançar Status de Pedido");
-        System.out.println("7) Listar Pedidos por Status");
-        System.out.println("8) Relatório de Vendas (Simplificado)");
-        System.out.println("9) Relatório de Vendas (Detalhado)");
-        System.out.println("0) Sair");
-        System.out.println("=====================================");
+    private void mostrarStatusPossiveis() {
+        for (PedidoStatus st : PedidoStatus.values()) {
+            System.out.println(" - " + st);
+        }
     }
 }
