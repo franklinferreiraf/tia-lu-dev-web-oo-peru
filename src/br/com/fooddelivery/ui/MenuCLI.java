@@ -49,7 +49,6 @@ public class MenuCLI {
         System.out.println("=====================================");
     }
 
-    // Clientes
     private void cadastrarCliente() {
         System.out.println("--- Cadastrar Cliente ---");
         String nome = lerLinha("Nome: ");
@@ -73,7 +72,6 @@ public class MenuCLI {
         for (Cliente c : lista) System.out.println(c);
     }
 
-    // Itens
     private void cadastrarItem() {
         System.out.println("--- Cadastrar Item ---");
         String nome = lerLinha("Nome do item: ");
@@ -98,7 +96,6 @@ public class MenuCLI {
         for (ItemCardapio i : lista) System.out.println(i);
     }
 
-    // Pedidos
     private void criarPedido() {
         System.out.println("--- Criar Pedido ---");
         listarClientes();
@@ -196,7 +193,6 @@ public class MenuCLI {
         }
     }
 
-    // util
     private int lerInt(String msg) {
         while (true) {
             try {

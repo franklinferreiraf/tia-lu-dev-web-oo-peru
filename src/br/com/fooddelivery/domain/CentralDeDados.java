@@ -15,7 +15,6 @@ public class CentralDeDados {
     private final List<ItemCardapio> itens   = new ArrayList<>();
     private final List<Pedido> pedidos       = new ArrayList<>();
 
-    // Clientes
     public void adicionarCliente(Cliente c) {
         if (c == null) throw new IllegalArgumentException("Cliente nulo.");
         clientes.add(c);
@@ -28,7 +27,6 @@ public class CentralDeDados {
         return null;
     }
 
-    // Itens
     public void adicionarItem(ItemCardapio i) {
         if (i == null) throw new IllegalArgumentException("Item nulo.");
         itens.add(i);
@@ -41,7 +39,6 @@ public class CentralDeDados {
         return null;
     }
 
-    // Pedidos
     public void adicionarPedido(Pedido p) {
         if (p == null) throw new IllegalArgumentException("Pedido nulo.");
         pedidos.add(p);
@@ -59,7 +56,6 @@ public class CentralDeDados {
         return null;
     }
 
-    // Relatórios
     public int quantidadeTotalDePedidos() {
         return pedidos.size();
     }
